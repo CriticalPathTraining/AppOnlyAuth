@@ -40,7 +40,7 @@ namespace ThirdPartyEmbeddingDemo.Models {
     static string GetAccessTokenUsingKey() {
 
       string PfxFilePassword = "pass@word1";
-      string PfxFilePath = HttpContext.Current.Server.MapPath("~/Secrets/AppCert1.pfx");
+      string PfxFilePath = HttpContext.Current.Server.MapPath("~/Certificates/AppCert1.pfx");
       X509Certificate2 privateKeyCert = new X509Certificate2(PfxFilePath, PfxFilePassword);
       ClientAssertionCertificate cert = new ClientAssertionCertificate(applicationId, privateKeyCert);
 
@@ -50,7 +50,7 @@ namespace ThirdPartyEmbeddingDemo.Models {
     }
 
     private static PowerBIClient GetPowerBiClient() {
-      var tokenCredentials = new TokenCredentials(GetAccessTokenUsingKey(), "Bearer");
+      var tokenCredentials = new TokenCredentials(GetAccessToken(), "Bearer");
       return new PowerBIClient(new Uri(urlPowerBiRestApiRoot), tokenCredentials);
     }
 
