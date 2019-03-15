@@ -1,10 +1,12 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.PowerBI.Api.V2;
 using Microsoft.PowerBI.Api.V2.Models;
 using Microsoft.Rest;
+using Newtonsoft.Json;
 
 class Program {
 
@@ -20,7 +22,7 @@ class Program {
   private static string urlPowerBiRestApiRoot = "https://api.powerbi.com/";
 
   static void Main() {
-    CreateV2AppWorkspace("My First App Workspace");
+    string appWorkspaceId = CreateV2AppWorkspace("App WS 1");
   }
 
   // perform work using app-only identity
@@ -41,7 +43,7 @@ class Program {
     return new PowerBIClient(new Uri(urlPowerBiRestApiRoot), tokenCredentials);
   }
 
-  static void CreateV2AppWorkspace(string Name) {
+  static string CreateV2AppWorkspace(string Name) {
 
     string restUrlWorkspace = "https://api.powerbi.com/v1.0/myorg/groups?workspaceV2=True";
 
@@ -61,10 +63,27 @@ class Program {
     client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetAppOnlyAccessToken());
 
-    // send PATCH request to Power BI service 
-    var result = client.SendAsync(request).Result;
+    // send POST request to Power BI service 
+    var jsonResult = client.SendAsync(request).Result.Content.AsString();
+    AppWorkspaceObject appWs = JsonConvert.DeserializeObject<AppWorkspaceObject>(jsonResult);
+    return appWs.id;
   }
- 
+
+  public class AppWorkspaceObject {
+    public string id { get; set; }
+    public bool isReadOnly { get; set; }
+    public bool isOnDedicatedCapacity { get; set; }
+    public string name { get; set; }
+  }
+
+  static void PublishPBIX(string appWorkspaceId, string PbixFilePath, string ImportName) {
+    Console.WriteLine("Publishing " + PbixFilePath);
+    PowerBIClient pbiClient = GetPowerBiClientAsApp();
+    FileStream stream = new FileStream(PbixFilePath, FileMode.Open, FileAccess.Read);
+    var import = pbiClient.Imports.PostImportWithFileInGroup(appWorkspaceId, stream, ImportName);
+    Console.WriteLine("Publishing process completed");
+  }
+
   // perform work using Master User Account identity
   private static string GetMasterUserAccessToken() {
 
@@ -109,6 +128,5 @@ class Program {
       }
     }
   }
-  
-}
 
+}
